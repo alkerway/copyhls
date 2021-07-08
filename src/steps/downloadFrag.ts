@@ -50,7 +50,7 @@ class DownloadFrag {
                     )
                 }),
                 catchError((error) => {
-                    console.log(`Error caught on retry, frag ${frag.idx} ${frag.storagePath}, error ${error}`)
+                    console.log(`Max retry exceeded, frag ${frag.idx} ${frag.storagePath}, error ${error}`)
                     return of(frag)
                 })
             )

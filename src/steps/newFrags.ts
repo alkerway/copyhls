@@ -1,6 +1,8 @@
 import { Frag } from "../types/frag";
 import Events from "../utils/events";
 
+import { maxStallCount } from "../utils/config" 
+
 
 class NewFrags {
     private isFirstParse = true
@@ -37,6 +39,10 @@ class NewFrags {
                 } else {
                     this.stallCount++
                     console.log(`level stall count ${this.stallCount}`)
+                    if (this.stallCount > maxStallCount) {
+                        console.log(`Stall count exceeded max, cancelling ticker`)
+                        Events.cancelTicker()
+                    }
                 }
             }
         }

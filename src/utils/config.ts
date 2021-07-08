@@ -5,7 +5,9 @@ export const referer = `
 
 `.trim()
 export const stopAfter = 60 * 60 * 0.1
-export const tickSeconds = 20
+export const tickSeconds = 4
 export const storageBase = 'manifest'
 
 export const maxConcurrentDownloads = 6
+export const maxStallCount = 4
+export const maxNetworkError = 5

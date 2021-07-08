@@ -5,20 +5,18 @@ import LevelRequest from './steps/levelRequest'
 import LevelParse from './steps/levelParse'
 import NewFrags from './steps/newFrags'
 import DownloadFrag from './steps/downloadFrag'
-
-
-import WriteToManifest from './steps/writeToManifest'
-import { tickSeconds, stopAfter, maxConcurrentDownloads } from "./utils/config"
 import OrderFrags from './steps/orderFrags'
+import WriteToManifest from './steps/writeToManifest'
 
+import { tickSeconds, stopAfter, maxConcurrentDownloads } from "./utils/config"
 
 console.log('program start')
 
 // main flow
 interval(tickSeconds * 1000)
         .pipe(
-            takeUntil(Events.tickerCanceled),
             startWith(0),
+            takeUntil(Events.tickerCanceled),
             mergeMap(LevelRequest.requestLevel),
             map(LevelParse.parseLevel),
             map(NewFrags.getNewFrags),
@@ -33,4 +31,5 @@ interval(tickSeconds * 1000)
 
 // other events
 timer(stopAfter * 1000)
+    .pipe(takeUntil(Events.tickerCanceled))
     .subscribe(Events.cancelTicker)
