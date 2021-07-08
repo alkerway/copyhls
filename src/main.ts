@@ -1,15 +1,15 @@
 import { concatMap, map, mergeAll, mergeMap, interval, startWith, takeUntil, timer, race } from 'rxjs'
 
-import Messages from './utils/messages'
 import LevelRequest from './steps/levelRequest'
 import LevelParse from './steps/levelParse'
 import FragFilter from './steps/fragFilter'
 import DownloadFrag from './steps/downloadFrag'
 import OrderFrags from './steps/orderFrags'
 import WriteToManifest from './steps/writeToManifest'
+import Finished from './steps/onFinish'
 
 import { tickSeconds, stopAfter, maxConcurrentDownloads } from "./utils/config"
-import Finished from './steps/onFinish'
+import Messages from './utils/messages'
 
 console.log('program start')
 

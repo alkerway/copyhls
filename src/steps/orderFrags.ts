@@ -7,13 +7,19 @@ class OrderFrags {
     private lastProcessedFrag: Frag | null = null
     private unprocessedFrags: Frag[] = []
     private errorCount = 0
-    
+
     public addToOrderedQueue = (frag: Frag): Frag[] => {
+        console.log(`Frag ${frag.idx} added to ordering`)
         if (this.lastProcessedFrag === null) {
-            this.lastProcessedFrag = frag
-            if (frag.downloaded) {
-                return [frag]
+            if (frag.idx === 0) {
+                this.lastProcessedFrag = frag
+                if (frag.downloaded) {
+                    return [frag]
+                } else {
+                    return []
+                }
             } else {
+                this.unprocessedFrags.push(frag)
                 return []
             }
         }

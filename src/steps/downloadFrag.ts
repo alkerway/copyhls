@@ -8,33 +8,35 @@ import { referer } from "../utils/config"
 import { Frag } from "../types/frag";
 import { mergeMap, defer, Observable, retryWhen, timer, throwError, catchError, EMPTY, of } from "rxjs";
 
-const FRAG_TIMEOUT = 10
+const FRAG_TIMEOUT = 20
 
 class DownloadFrag {
     private maxRetry = 3
 
     public download = (frag: Frag): Observable<Frag> => {
         const {remoteUrl, storagePath} = frag
-        const controller = new AbortController();
-        const timeout = setTimeout(() => {
-            controller.abort();
-        }, FRAG_TIMEOUT * 1000);
-        const options: RequestInit = {
-            headers: {
-                referer: referer,
-                origin: referer
-            },
-            compress: false,
-            signal: controller.signal
-        }
         const basePath = frag.storagePath.split('/').slice(0, -1).join('/')
         console.log(`Starting download ${frag.idx}`)
         return defer(async () => {
-                const streamPipeline = promisify(pipeline)
                 const exists = await pathExists(basePath)
                 if (!exists) {
                     await mkdirp(basePath)
                 }
+                const streamPipeline = promisify(pipeline)
+                
+                const controller = new AbortController();
+                const timeout = setTimeout(() => {
+                    controller.abort();
+                }, FRAG_TIMEOUT * 1000);
+                const options: RequestInit = {
+                    headers: {
+                        referer: referer,
+                        origin: referer
+                    },
+                    compress: false,
+                    signal: controller.signal
+                }
+                
                 const res = await fetch(remoteUrl, options)
                 if (!res.ok) {
                     const errorText = `${res.status} ${res.statusText}`
