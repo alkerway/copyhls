@@ -14,16 +14,16 @@ import Finished from './steps/onFinish'
 console.log('program start')
 
 interval(tickSeconds * 1000)
-        .pipe(
-            startWith(0),
-            takeUntil(race(timer(stopAfter * 1000), Events.tickerCanceled)),
-            mergeMap(LevelRequest.requestLevel),
-            map(LevelParse.parseLevel),
-            map(NewFrags.getNewFrags),
-            mergeAll(),
-            mergeMap(DownloadFrag.download, maxConcurrentDownloads),
-            map(OrderFrags.onDownload),
-            mergeAll(),
-            concatMap(WriteToManifest.write)
-        )
+    .pipe(
+        startWith(0),
+        takeUntil(race(timer(stopAfter * 1000), Events.tickerCanceled)),
+        mergeMap(LevelRequest.requestLevel),
+        map(LevelParse.parseLevel),
+        map(NewFrags.getNewFrags),
+        mergeAll(),
+        mergeMap(DownloadFrag.download, maxConcurrentDownloads),
+        map(OrderFrags.onDownload),
+        mergeAll(),
+        concatMap(WriteToManifest.write)
+    )
     .subscribe({complete: Finished.onFinish})
