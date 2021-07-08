@@ -6,7 +6,9 @@ import { storageBase } from "../utils/config";
 
 class WriteToManifest {
     private isFirstWrite = true
-    public write = async (frag: Frag) => {
+
+
+    public write = async (frag: Frag): Promise<Frag> => {
         const levelPath = `${storageBase}/level.m3u8`
         
         if (this.isFirstWrite) {
@@ -16,6 +18,7 @@ class WriteToManifest {
         
         const text = `${frag.tagLines.join('\n')}\n${frag.storagePath.split('/').slice(1).join('/')}\n`
         await appendFile(levelPath, text)
+        return frag
     }
 }
 

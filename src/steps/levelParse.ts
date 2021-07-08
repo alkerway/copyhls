@@ -1,12 +1,10 @@
 import { Frag } from "../types/frag"
-import Events from "../utils/events"
-
 import { levelUrl, storageBase } from "../utils/config"
 
 class LevelParse {
     public parseLevel = (levelText: string) => {
         const allFrags = this.extractFrags(levelText)
-        Events.onLevelParsed(allFrags)
+        return allFrags
     }
 
     private extractFrags = (manifest: string): Frag[] => {
@@ -41,6 +39,7 @@ class LevelParse {
             } else {
                 let remoteUrl = ''
                 let storagePath = ''
+                // console.log(line)
                 if (line.startsWith('http')) {
                     storagePath = line.split('?')[0].split('/').slice(-1)[0]
                     remoteUrl = line
@@ -50,7 +49,7 @@ class LevelParse {
                     remoteUrl = `${origin}${line}`
                 } else {
                     storagePath = line.split('?')[0]
-                    const trimmedPath = levelUrl.split('/').slice(0, -1).join('/')
+                    const trimmedPath = levelUrl.split('?')[0].split('/').slice(0, -1).join('/')
                     remoteUrl = `${trimmedPath}/${line}`
                 }
                 const newFrag: Frag = {

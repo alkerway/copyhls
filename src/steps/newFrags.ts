@@ -5,8 +5,10 @@ import Events from "../utils/events";
 class NewFrags {
     private isFirstParse = true
     private mostRecentIdx = -1
+    private stallCount = 0
 
-    public getNewFrags = (allFrags: Frag[]) => {
+    public getNewFrags = (allFrags: Frag[]): Frag[] => {
+        let newFrags: Frag[] = []
         if (allFrags.length) {
             // live
             if (this.isFirstParse) {
@@ -25,15 +27,20 @@ class NewFrags {
                 .filter(tag => tag)
                 lastFrag.tagLines = uniqueTags.concat(lastFrag.tagLines)
                 this.mostRecentIdx = lastFrag.idx
-                Events.onNewFrags([lastFrag])
+                newFrags = [lastFrag]
             } else {
-                const newFrags = allFrags.filter(f => this.mostRecentIdx < f.idx)
-                if (newFrags.length) {
-                    this.mostRecentIdx = newFrags[newFrags.length - 1].idx
-                    Events.onNewFrags(newFrags)
+                const incomingFrags = allFrags.filter(f => this.mostRecentIdx < f.idx)
+                if (incomingFrags.length) {
+                    this.mostRecentIdx = incomingFrags[incomingFrags.length - 1].idx
+                    newFrags = incomingFrags
+                    this.stallCount = 0
+                } else {
+                    this.stallCount++
+                    console.log(`level stall count ${this.stallCount}`)
                 }
             }
         }
+        return newFrags
     }
 }
 
