@@ -6,6 +6,7 @@ import { storageBase } from "../utils/config";
 
 class WriteToManifest {
     private isFirstWrite = true
+    private totalDuration = 0
 
 
     public write = async (frag: Frag): Promise<Frag> => {
@@ -18,6 +19,8 @@ class WriteToManifest {
         
         const text = `${frag.tagLines.join('\n')}\n${frag.storagePath.split('/').slice(1).join('/')}\n`
         await appendFile(levelPath, text)
+        this.totalDuration += frag.duration
+        console.log(`Frag ${frag.idx} written to ${frag.storagePath} (${(this.totalDuration / 60).toFixed(1)}min)`)
         return frag
     }
 }

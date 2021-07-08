@@ -1,4 +1,4 @@
-import { concatMap, map, mergeAll, mergeMap, interval, startWith, takeUntil, timer } from 'rxjs'
+import { concatMap, map, mergeAll, mergeMap, interval, startWith, takeUntil, timer, race } from 'rxjs'
 
 import Events from './utils/events'
 import LevelRequest from './steps/levelRequest'
@@ -9,14 +9,14 @@ import OrderFrags from './steps/orderFrags'
 import WriteToManifest from './steps/writeToManifest'
 
 import { tickSeconds, stopAfter, maxConcurrentDownloads } from "./utils/config"
+import Finished from './steps/onFinish'
 
 console.log('program start')
 
-// main flow
 interval(tickSeconds * 1000)
         .pipe(
             startWith(0),
-            takeUntil(Events.tickerCanceled),
+            takeUntil(race(timer(stopAfter * 1000), Events.tickerCanceled)),
             mergeMap(LevelRequest.requestLevel),
             map(LevelParse.parseLevel),
             map(NewFrags.getNewFrags),
@@ -24,12 +24,6 @@ interval(tickSeconds * 1000)
             mergeMap(DownloadFrag.download, maxConcurrentDownloads),
             map(OrderFrags.onDownload),
             mergeAll(),
-            concatMap(WriteToManifest.write),
-            map((frag) => `Frag ${frag.idx} written to ${frag.storagePath}`)
+            concatMap(WriteToManifest.write)
         )
-    .subscribe(console.log)
-
-// other events
-timer(stopAfter * 1000)
-    .pipe(takeUntil(Events.tickerCanceled))
-    .subscribe(Events.cancelTicker)
+    .subscribe({complete: Finished.onFinish})
