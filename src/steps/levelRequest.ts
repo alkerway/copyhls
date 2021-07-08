@@ -1,6 +1,6 @@
 import fetch, { RequestInit } from "node-fetch";
 
-import Events from "../utils/events";
+import Messages from "../utils/messages";
 import { levelUrl, referer, maxNetworkError } from "../utils/config" 
 import { catchError, EMPTY, from, Observable } from "rxjs";
 
@@ -31,7 +31,7 @@ class LevelRequest {
         console.log(error.message)
         if (this.errorCount > maxNetworkError) {
             console.log(`Max level request error, cancelling ticker`)
-            Events.cancelTicker()
+            Messages.cancelTicker()
         }
         return EMPTY
     }

@@ -1,7 +1,6 @@
 import { Frag } from "../types/frag";
-
 import { maxNetworkError } from "../utils/config" 
-import events from "../utils/events";
+import Messages from "../utils/messages";
 
 
 class OrderFrags {
@@ -9,7 +8,7 @@ class OrderFrags {
     private unprocessedFrags: Frag[] = []
     private errorCount = 0
     
-    public onDownload = (frag: Frag): Frag[] => {
+    public addToOrderedQueue = (frag: Frag): Frag[] => {
         if (this.lastProcessedFrag === null) {
             this.lastProcessedFrag = frag
             if (frag.downloaded) {
@@ -31,7 +30,7 @@ class OrderFrags {
                 this.errorCount++
                 if (this.errorCount > maxNetworkError) {
                     console.log(`Max frags not downloaded, cancelling ticker`)
-                    events.cancelTicker()
+                    Messages.cancelTicker()
                 }
             }
             this.lastProcessedFrag = Object.assign({}, newFrag)

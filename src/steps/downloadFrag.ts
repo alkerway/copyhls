@@ -24,6 +24,7 @@ class DownloadFrag {
                 referer: referer,
                 origin: referer
             },
+            compress: false,
             signal: controller.signal
         }
         const basePath = frag.storagePath.split('/').slice(0, -1).join('/')

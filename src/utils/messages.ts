@@ -1,8 +1,6 @@
 import { Subject } from "rxjs";
 
-import { Frag } from '../types/frag'
-
-class Events { 
+class Messages { 
     public tickerCanceled = new Subject<void>()
 
     public cancelTicker = () => {
@@ -10,4 +8,4 @@ class Events {
     }
 }
 
-export default new Events()
+export default new Messages()

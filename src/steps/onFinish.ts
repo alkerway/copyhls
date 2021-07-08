@@ -8,7 +8,7 @@ import { storageBase, outputFormat } from "../utils/config"
 
 
 class Finished {
-    public onFinish = async () => {
+    public assembleVideo = async () => {
         // console.log('Last event complete')
         const levelPath = `${storageBase}/level.m3u8`
         const levelExists = await pathExists(levelPath)

@@ -1,15 +1,15 @@
 import { Frag } from "../types/frag";
-import Events from "../utils/events";
+import Messages from "../utils/messages";
 
 import { maxStallCount } from "../utils/config" 
 
 
-class NewFrags {
+class FragFilter {
     private isFirstParse = true
     private mostRecentIdx = -1
     private stallCount = 0
 
-    public getNewFrags = (allFrags: Frag[]): Frag[] => {
+    public extractNewFrags = (allFrags: Frag[]): Frag[] => {
         let newFrags: Frag[] = []
         if (allFrags.length) {
             // live
@@ -41,7 +41,7 @@ class NewFrags {
                     console.log(`level stall count ${this.stallCount}`)
                     if (this.stallCount > maxStallCount) {
                         console.log(`Stall count exceeded max, cancelling ticker`)
-                        Events.cancelTicker()
+                        Messages.cancelTicker()
                     }
                 }
             }
@@ -50,4 +50,4 @@ class NewFrags {
     }
 }
 
-export default new NewFrags
+export default new FragFilter
