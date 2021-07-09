@@ -37,6 +37,7 @@ class FragFilter {
                     .filter(tag => tag)
                     lastFrag.tagLines = uniqueTags.concat(lastFrag.tagLines)
                     this.mostRecentIdx = lastFrag.idx
+                    Messages.setFirstFragIdx(this.mostRecentIdx)
                     newFrags = [lastFrag]
                 } else if (hasEndlist) {
                     console.log('Live manifest end encountered, cancelling ticker')
@@ -57,9 +58,6 @@ class FragFilter {
                     }
                 }
             }
-        }
-        if (this.isFirstParse && newFrags.length) {
-
         }
         return newFrags
     }

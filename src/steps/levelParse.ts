@@ -43,12 +43,12 @@ class LevelParse {
             } else {
                 let remoteUrl = ''
                 let storagePath = ''
-                // console.log(line)
+                const fragIdx = curFragSequence + mediaSequence - (this.firstMediaSequence || 0)
                 if (line.startsWith('http')) {
-                    storagePath = line.split('?')[0].split('/').slice(-1)[0]
+                    storagePath = `frag_${fragIdx}.ts`
                     remoteUrl = line
                 } else if (line.startsWith('/')) {
-                    storagePath = line.split('?')[0].split('/').slice(-1)[0]
+                    storagePath = `frag_${fragIdx}.ts`
                     const origin = levelUrl.split('/').slice(0, 3).join('/')
                     remoteUrl = `${origin}${line}`
                 } else {
@@ -61,7 +61,7 @@ class LevelParse {
                     remoteUrl,
                     tagLines: curTagLines, 
                     downloaded: false,
-                    idx: curFragSequence + mediaSequence - (this.firstMediaSequence || 0),
+                    idx: fragIdx,
                     duration: curFragDuration
                 }
                 frags.push(newFrag)

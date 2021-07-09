@@ -2,7 +2,7 @@ import fetch, { RequestInit } from "node-fetch";
 
 import Messages from "../utils/messages";
 import { levelUrl, referer, maxNetworkError } from "../utils/config" 
-import { catchError, EMPTY, from, Observable } from "rxjs";
+import { catchError, defer, EMPTY, Observable } from "rxjs";
 
 class LevelRequest {
     private errorCount = 0
@@ -15,14 +15,14 @@ class LevelRequest {
                 origin: referer
             }
         }
-        return from(fetch(levelUrl, options)
-            .then(res => {
+        return defer(async () => {
+                const res = await fetch(levelUrl, options)
                 if (!res.ok) {
                     throw new Error(`Error retrieving level: ${res.status}, ${res.statusText}`)
                 }
                 this.errorCount = 0
-                return res.text()
-            }))
+                return await res.text()
+            })
             .pipe(catchError(this.onLevelError))
     }
 

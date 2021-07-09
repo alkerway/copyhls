@@ -6,7 +6,7 @@ import { promisify } from 'util'
 
 import { referer } from "../utils/config" 
 import { Frag } from "../types/frag";
-import { mergeMap, defer, Observable, retryWhen, timer, throwError, catchError, EMPTY, of } from "rxjs";
+import { mergeMap, defer, Observable, retryWhen, timer, throwError, catchError, of } from "rxjs";
 
 const FRAG_TIMEOUT = 20
 

@@ -8,12 +8,12 @@ import OrderFrags from './steps/orderFrags'
 import WriteToManifest from './steps/writeToManifest'
 import Finished from './steps/onFinish'
 
-import { tickSeconds, stopAfter, maxConcurrentDownloads } from "./utils/config"
+import { levelPollInterval, stopAfter, maxConcurrentDownloads } from "./utils/config"
 import Messages from './utils/messages'
 
 console.log('program start')
 
-interval(tickSeconds * 1000)
+interval(levelPollInterval * 1000)
     .pipe(
         startWith(0),
         takeUntil(race(timer(stopAfter * 1000), Messages.tickerCanceled)),
