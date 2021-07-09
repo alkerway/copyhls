@@ -1,6 +1,6 @@
 ### Copy Manifest Tool
 
-This is a rewrite of https://github.com/alkerway/copylivemanifest, with the goal being to make the code more simple and declarative. A look at src/main.ts should give a declarative overview of how the program runs.
+This is a rewrite of https://github.com/alkerway/copylivemanifest, with the goal being to make the code more simple and declarative. A look at [src/main.ts](src/main.ts) should give a declarative overview of how the program runs.
 
 #### Live
 
