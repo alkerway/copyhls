@@ -1,5 +1,7 @@
 ### Copy Manifest Tool
 
+This is a rewrite of https://github.com/alkerway/copylivemanifest, with the goal being to make the code more simple and declarative. A look at src/main.ts should give a declarative overview of how the program runs.
+
 #### Live
 
 DVRs a given level manifest by polling and downloading fragments for a given amount of time, yielding an updating 
