@@ -1,12 +1,6 @@
-import fetch, { RequestInit } from "node-fetch";
-import AbortController from "abort-controller"
-import {createWriteStream, pathExists, mkdirp} from 'fs-extra'
-import { pipeline } from 'stream'
-import { promisify } from 'util'
-
-import { referer } from "../utils/config" 
 import { Frag } from "../types/frag";
-import { mergeMap, defer, Observable, retryWhen, timer, throwError, catchError, of } from "rxjs";
+import { mergeMap, defer, Observable, retryWhen, timer, throwError, catchError, of, map } from "rxjs";
+import { RemoteToFile } from "../utils/remoteToFile";
 
 const FRAG_TIMEOUT = 20
 
@@ -17,42 +11,17 @@ class DownloadFrag {
         const {remoteUrl, storagePath} = frag
         const basePath = frag.storagePath.split('/').slice(0, -1).join('/')
         console.log(`Starting download ${frag.idx}`)
-        return defer(async () => {
-                const exists = await pathExists(basePath)
-                if (!exists) {
-                    await mkdirp(basePath)
-                }
-                const streamPipeline = promisify(pipeline)
-                
-                const controller = new AbortController();
-                const timeout = setTimeout(() => {
-                    controller.abort();
-                }, FRAG_TIMEOUT * 1000);
-                const options: RequestInit = {
-                    headers: {
-                        referer: referer,
-                        origin: referer
-                    },
-                    compress: false,
-                    signal: controller.signal
-                }
-                
-                const res = await fetch(remoteUrl, options)
-                if (!res.ok) {
-                    const errorText = `${res.status} ${res.statusText}`
-                    console.log(`error retrieving frag no ${frag.idx}: ${errorText}`)
-                    throw new Error(errorText)
-                }
-                clearTimeout(timeout)
-                await streamPipeline(res.body, createWriteStream(storagePath))
-                console.log(`Finished download ${frag.idx}`)
-                frag.downloaded = true
-                return frag
-            })
+        return RemoteToFile(remoteUrl, storagePath, FRAG_TIMEOUT)
             .pipe(
+                map(() => {
+                    console.log(`Finished download ${frag.idx}`)
+                    frag.downloaded = true
+                    return frag
+                }),
                 retryWhen(errors => {
                     return errors.pipe(
                         mergeMap((error, attemptNo) => {
+                            console.log(`Frag download error, ${error}`)
                             if (attemptNo + 1 > this.maxRetry) {
                                 return throwError(() => error)
                             }

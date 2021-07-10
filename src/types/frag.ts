@@ -1,3 +1,5 @@
+import { ExtKey } from "./key";
+
 export interface Frag {
     remoteUrl: string
     storagePath: string
@@ -5,4 +7,5 @@ export interface Frag {
     duration: number
     idx: number
     downloaded: boolean
+    key: ExtKey | null
 }

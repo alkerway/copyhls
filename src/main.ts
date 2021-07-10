@@ -10,6 +10,7 @@ import Finished from './steps/onFinish'
 
 import { levelPollInterval, stopAfter, maxConcurrentDownloads } from "./utils/config"
 import Messages from './utils/messages'
+import DownloadKey from './steps/downloadKey'
 
 console.log('program start')
 
@@ -21,6 +22,7 @@ interval(levelPollInterval * 1000)
         map(LevelParse.getFragsFromManifest),
         map(FragFilter.findNewFrags),
         mergeAll(),
+        mergeMap(DownloadKey.download, maxConcurrentDownloads),
         mergeMap(DownloadFrag.download, maxConcurrentDownloads),
         map(OrganizeFrags.addToOrderedQueue),
         mergeAll(),

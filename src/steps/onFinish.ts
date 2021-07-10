@@ -14,8 +14,8 @@ class Finished {
         if (levelExists) {
             await appendFile(levelPath, '#EXT-X-ENDLIST')
             console.log('Compiling video...')
-            const stamp = new Date().toLocaleTimeString().slice(0,8)
-            await promiseExec(`ffmpeg -y -i ${levelPath} -c copy ${storageBase}/video_${stamp}.${outputFormat}`)
+            const stamp = new Date().toLocaleTimeString().slice(0,7).replace(/:/g, '-')
+            await promiseExec(`ffmpeg -y -allowed_extensions ALL -i ${levelPath} -c copy ${storageBase}/video_${stamp}.${outputFormat}`)
         }
         console.log('Done')
     }

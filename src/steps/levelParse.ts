@@ -1,4 +1,4 @@
-import { Frag } from "../types/frag"
+import { Frag, ExtKey } from "../types"
 import { levelUrl, storageBase } from "../utils/config"
 
 class LevelParse {
@@ -11,6 +11,7 @@ class LevelParse {
         let curTagLines: string[] = []
         let curFragDuration = 0
         let curFragSequence = 0
+        let curExtKey: ExtKey | null = null
         let hasEndlist = false
 
         for (const line of lines) {
@@ -37,26 +38,38 @@ class LevelParse {
                         }
                     }
                 }
+                if (line.indexOf('#EXT-X-KEY') > -1) {
+                    const commaRegex = /,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/
+                    const dataStr = line.split(/:(.+)/)[1]
+                    const dataParts = dataStr.split(commaRegex)
+                    const keyData = dataParts.reduce((keyObj, keyval) => {
+                        let [attr, val] = keyval.split(/=(.+)/)
+                        attr = attr.toLowerCase()
+                        if (attr === 'method' ||
+                            attr === 'uri' ||
+                            attr === 'iv') {
+                            keyObj[attr] = val.replace(/['"]+/g, '')
+                        }
+                        return keyObj
+                    }, {} as ExtKey)
+                    if (keyData.method?.toLowerCase() === 'none') {
+                        curExtKey = null
+                    } else if (keyData.method?.toLowerCase() === 'aes-128' && keyData.uri) {
+                        keyData['remoteUrl'] = this.getRemoteUrl(keyData.uri, levelUrl)
+                        keyData['storagePath'] = `${storageBase}/keys/${keyData.uri.replace(/[\/\\:*?"<>]/g, "")}`
+                        keyData['localManifestLine'] = line.replace(keyData.uri, keyData.storagePath.slice(storageBase.length + 1))
+                        curExtKey = keyData
+                    }
+                }
                 if (line.indexOf('#EXT-X-ENDLIST' )> -1) {
                     hasEndlist = true
                 }
             } else {
-                let remoteUrl = ''
-                let storagePath = ''
+                let remoteUrl = this.getRemoteUrl(line, levelUrl)
                 const fragIdx = curFragSequence + mediaSequence - (this.firstMediaSequence || 0)
-                if (line.startsWith('http')) {
-                    storagePath = `frag_${fragIdx}.ts`
-                    remoteUrl = line
-                } else if (line.startsWith('/')) {
-                    storagePath = `frag_${fragIdx}.ts`
-                    const origin = levelUrl.split('/').slice(0, 3).join('/')
-                    remoteUrl = `${origin}${line}`
-                } else {
-                    storagePath = line.split('?')[0]
-                    const trimmedPath = levelUrl.split('?')[0].split('/').slice(0, -1).join('/')
-                    remoteUrl = `${trimmedPath}/${line}`
-                }
+                let storagePath = `frag_${fragIdx}.ts`
                 const newFrag: Frag = {
+                    key: curExtKey,
                     storagePath: `${storageBase}/frags/${storagePath}`,
                     remoteUrl,
                     tagLines: curTagLines, 
@@ -71,6 +84,18 @@ class LevelParse {
             }
         }
         return [frags, hasEndlist]
+    }
+
+    private getRemoteUrl = (line: string, levelUrl: string): string => {
+        if (line.startsWith('http')) {
+            return line
+        } else if (line.startsWith('/')) {
+            const origin = levelUrl.split('/').slice(0, 3).join('/')
+            return `${origin}${line}`
+        } else {
+            const trimmedPath = levelUrl.split('?')[0].split('/').slice(0, -1).join('/')
+            return `${trimmedPath}/${line}`
+        }
     }
 }
 

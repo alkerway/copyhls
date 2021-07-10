@@ -16,6 +16,14 @@ class WriteToManifest {
             this.isFirstWrite = false
             await writeFile(levelPath, '')
         }
+
+        if (frag.key) {
+            const originalKeyLine = frag.tagLines.find(line => line.includes('EXT-X-KEY'))
+            if (originalKeyLine) {
+                const originalIdx = frag.tagLines.indexOf(originalKeyLine)
+                frag.tagLines[originalIdx] = frag.key.localManifestLine
+            }
+        }
         
         const text = `${frag.tagLines.join('\n')}\n${frag.storagePath.split('/').slice(1).join('/')}\n`
         await appendFile(levelPath, text)
