@@ -3,7 +3,7 @@ import { maxNetworkError } from "../utils/config"
 import Messages from "../utils/messages";
 
 
-class OrderFrags {
+class OrganizeFrags {
     private lastProcessedFrag: Frag | null = null
     private unprocessedFrags: Frag[] = []
     private errorCount = 0
@@ -49,4 +49,4 @@ class OrderFrags {
     }
 }
 
-export default new OrderFrags
+export default new OrganizeFrags

@@ -9,9 +9,8 @@ class FragFilter {
     private mostRecentIdx = -1
     private stallCount = 0
 
-    public extractNewFrags = (parsedData: [Frag[], boolean]): Frag[] => {
-        const allFrags = parsedData[0]
-        const hasEndlist = parsedData[1]
+    public findNewFrags = (parsedData: [Frag[], boolean]): Frag[] => {
+        const [allFrags, hasEndlist] = parsedData
         let newFrags: Frag[] = []
         if (allFrags.length) {
             if (hasEndlist && this.isFirstParse) {

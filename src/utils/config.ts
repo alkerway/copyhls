@@ -1,11 +1,10 @@
 export const levelUrl = `
-https://nzp-ms05.si.edu/live_edge_panda/smil:panda02_all.smil/chunklist_w891440426_b2464000.m3u8
+https://nzp-ms04.si.edu/live_edge_panda/smil:panda03_all.smil/chunklist_w1394146429_b1264000.m3u8
 `.trim()
 export const referer = `
-https://nationalzoo.si.edu/webcams/panda-cam
 `.trim()
-export const stopAfter = 60 * 60 * 3.5
-export const tickSeconds = 6
+export const stopAfter = 60 * 60 * 6
+export const levelPollInterval = 6
 export const storageBase = 'manifest'
 
 export const outputFormat = 'mp4'

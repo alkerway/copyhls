@@ -4,7 +4,7 @@ import { levelUrl, storageBase } from "../utils/config"
 class LevelParse {
     private firstMediaSequence: null | number = null
 
-    public parseLevel =  (manifest: string): [Frag[], boolean] => {
+    public getFragsFromManifest =  (manifest: string): [Frag[], boolean] => {
         const frags: Frag[] = []
         const lines = manifest.split('\n')
         let mediaSequence = 0

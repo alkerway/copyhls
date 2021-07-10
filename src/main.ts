@@ -4,7 +4,7 @@ import LevelRequest from './steps/levelRequest'
 import LevelParse from './steps/levelParse'
 import FragFilter from './steps/fragFilter'
 import DownloadFrag from './steps/downloadFrag'
-import OrderFrags from './steps/orderFrags'
+import OrganizeFrags from './steps/organizeFrags'
 import WriteToManifest from './steps/writeToManifest'
 import Finished from './steps/onFinish'
 
@@ -18,11 +18,11 @@ interval(levelPollInterval * 1000)
         startWith(0),
         takeUntil(race(timer(stopAfter * 1000), Messages.tickerCanceled)),
         mergeMap(LevelRequest.requestLevel),
-        map(LevelParse.parseLevel),
-        map(FragFilter.extractNewFrags),
+        map(LevelParse.getFragsFromManifest),
+        map(FragFilter.findNewFrags),
         mergeAll(),
         mergeMap(DownloadFrag.download, maxConcurrentDownloads),
-        map(OrderFrags.addToOrderedQueue),
+        map(OrganizeFrags.addToOrderedQueue),
         mergeAll(),
         concatMap(WriteToManifest.write)
     )
