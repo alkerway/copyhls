@@ -2,3 +2,4 @@ dist
 manifest
 node_modules
 output.log
+getlevel.js
