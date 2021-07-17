@@ -14,7 +14,7 @@ class DownloadFrag {
         return RemoteToFile(remoteUrl, storagePath, FRAG_TIMEOUT)
             .pipe(
                 map(() => {
-                    console.log(`Finished download ${frag.idx}`)
+                    console.log(`Frag ${frag.idx} downloaded`)
                     frag.downloaded = true
                     return frag
                 }),
