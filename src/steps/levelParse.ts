@@ -3,6 +3,10 @@ import { levelUrl, storageBase } from "../utils/config"
 
 class LevelParse {
     private firstMediaSequence: null | number = null
+    private keyMap: {
+        [uri: string]: number
+    } = {}
+    private keyIdx = 0
 
     public getFragsFromManifest =  (manifest: string): [Frag[], boolean] => {
         const frags: Frag[] = []
@@ -55,8 +59,17 @@ class LevelParse {
                     if (keyData.method?.toLowerCase() === 'none') {
                         curExtKey = null
                     } else if (keyData.method?.toLowerCase() === 'aes-128' && keyData.uri) {
-                        keyData['remoteUrl'] = this.getRemoteUrl(keyData.uri, levelUrl)
-                        keyData['storagePath'] = `${storageBase}/keys/${keyData.uri.replace(/[\/\\:*?"<>]/g, "")}`
+                        const remoteKeyUrl = this.getRemoteUrl(keyData.uri, levelUrl)
+                        keyData['remoteUrl'] = remoteKeyUrl
+                        let keyStorageNumber = this.keyIdx
+                        if (this.keyMap[remoteKeyUrl]) {
+                            keyStorageNumber = this.keyMap[remoteKeyUrl]
+                        } else {
+                            this.keyIdx++
+                            this.keyMap[remoteKeyUrl] = this.keyIdx
+                            keyStorageNumber = this.keyIdx
+                        }
+                        keyData['storagePath'] = `${storageBase}/keys/key_${keyStorageNumber}.key`
                         keyData['localManifestLine'] = line.replace(keyData.uri, keyData.storagePath.slice(storageBase.length + 1))
                         curExtKey = keyData
                     }
