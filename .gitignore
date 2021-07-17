@@ -3,3 +3,5 @@ manifest
 node_modules
 output.log
 getlevel.js
+auto_output*
+tryurls.py
