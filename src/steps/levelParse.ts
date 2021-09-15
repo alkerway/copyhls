@@ -1,12 +1,18 @@
 import { Frag, ExtKey } from "../types"
 import { levelUrl, storageBase } from "../utils/config"
 
+
 class LevelParse {
     private firstMediaSequence: null | number = null
     private keyMap: {
         [uri: string]: number
     } = {}
     private keyIdx = 0
+    private instanceId = ''
+
+    constructor() {
+        this.instanceId = this.randId(3)
+    }
 
     public getFragsFromManifest =  (manifest: string): [Frag[], boolean] => {
         const frags: Frag[] = []
@@ -59,19 +65,23 @@ class LevelParse {
                     if (keyData.method?.toLowerCase() === 'none') {
                         curExtKey = null
                     } else if (keyData.method?.toLowerCase() === 'aes-128' && keyData.uri) {
-                        const remoteKeyUrl = this.getRemoteUrl(keyData.uri, levelUrl)
-                        keyData['remoteUrl'] = remoteKeyUrl
-                        let keyStorageNumber = this.keyIdx
-                        if (this.keyMap[remoteKeyUrl]) {
-                            keyStorageNumber = this.keyMap[remoteKeyUrl]
+                        if (keyData.uri.toLowerCase().startsWith('data')) {
+                            curExtKey = null
                         } else {
-                            this.keyIdx++
-                            this.keyMap[remoteKeyUrl] = this.keyIdx
-                            keyStorageNumber = this.keyIdx
+                            const remoteKeyUrl = this.getRemoteUrl(keyData.uri, levelUrl)
+                            keyData['remoteUrl'] = remoteKeyUrl
+                            let keyStorageNumber = this.keyIdx
+                            if (this.keyMap[remoteKeyUrl]) {
+                                keyStorageNumber = this.keyMap[remoteKeyUrl]
+                            } else {
+                                this.keyIdx++
+                                this.keyMap[remoteKeyUrl] = this.keyIdx
+                                keyStorageNumber = this.keyIdx
+                            }
+                            keyData['storagePath'] = `${storageBase}/keys/${this.instanceId}_key_${keyStorageNumber}.key`
+                            keyData['localManifestLine'] = line.replace(keyData.uri, keyData.storagePath.slice(storageBase.length + 1))
+                            curExtKey = keyData
                         }
-                        keyData['storagePath'] = `${storageBase}/keys/key_${keyStorageNumber}.key`
-                        keyData['localManifestLine'] = line.replace(keyData.uri, keyData.storagePath.slice(storageBase.length + 1))
-                        curExtKey = keyData
                     }
                 }
                 if (line.indexOf('#EXT-X-ENDLIST' )> -1) {
@@ -80,7 +90,7 @@ class LevelParse {
             } else {
                 let remoteUrl = this.getRemoteUrl(line, levelUrl)
                 const fragIdx = curFragSequence + mediaSequence - (this.firstMediaSequence || 0)
-                let storagePath = `frag_${fragIdx}.ts`
+                let storagePath = `${this.instanceId}_frag_${fragIdx}.ts`
                 const newFrag: Frag = {
                     key: curExtKey,
                     storagePath: `${storageBase}/frags/${storagePath}`,
@@ -109,6 +119,16 @@ class LevelParse {
             const trimmedPath = levelUrl.split('?')[0].split('/').slice(0, -1).join('/')
             return `${trimmedPath}/${line}`
         }
+    }
+
+    private randId = (length: number): string => {
+        const alphabet = 'qwertyuiopasdfghjklzxcvbnm'
+        const letters = alphabet + alphabet.toUpperCase()
+        let id = ''
+        for (let i = 0; i < length; i++) {
+            id = id + letters[Math.floor(Math.random() * letters.length)]
+        }
+        return id
     }
 }
 

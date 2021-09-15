@@ -2,10 +2,11 @@ import { Frag } from "../types/frag";
 import Messages from "../utils/messages";
 
 import { maxStallCount } from "../utils/config" 
+import FragQueue from "../utils/fragQueue";
 
 
 class FragFilter {
-    private isFirstParse = true
+    private skipFirstBunch = false // true
     private mostRecentIdx = -1
     private stallCount = 0
 
@@ -13,15 +14,15 @@ class FragFilter {
         const [allFrags, hasEndlist] = parsedData
         let newFrags: Frag[] = []
         if (allFrags.length) {
-            if (hasEndlist && this.isFirstParse) {
+            if (hasEndlist && this.mostRecentIdx === -1) {
                 // vod
                 newFrags = allFrags
                 console.log('Vod manifest detected, cancelling ticker')
                 Messages.cancelTicker()
             } else {
                 // live
-                if (this.isFirstParse) {
-                    this.isFirstParse = false
+                if (this.skipFirstBunch) {
+                    this.skipFirstBunch = false
                     const headerTags = allFrags[0].tagLines
                     const lastFrag = allFrags[allFrags.length - 1]
                     const uniqueTags = headerTags.map((tag) => {
@@ -58,6 +59,7 @@ class FragFilter {
                 }
             }
         }
+        FragQueue.addFragsFromManifest(newFrags)
         return newFrags
     }
 }
