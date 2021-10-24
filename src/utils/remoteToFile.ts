@@ -7,7 +7,7 @@ import { defer } from "rxjs"
 import { referer } from "./config";
 
 
-export const RemoteToFile = (remoteUrl: string, storagePath: string, requestTimeout=30) => {
+export const RemoteToFile = (remoteUrl: string, storagePath: string, requestTimeout=20) => {
     return defer(async () => {
         const basePath = storagePath.split('/').slice(0, -1).join('/')
         const exists = await pathExists(basePath)
@@ -29,13 +29,17 @@ export const RemoteToFile = (remoteUrl: string, storagePath: string, requestTime
             compress: false,
             signal: controller.signal
         }
-        
-        const res = await fetch(remoteUrl, options)
-        if (!res.ok) {
-            const errorText = `${res.status} ${res.statusText}`
-            throw new Error(errorText)
+        try {
+            const res = await fetch(remoteUrl, options)
+            if (!res.ok) {
+                const errorText = `${res.status} ${res.statusText}`
+                throw new Error(errorText)
+            }
+            await streamPipeline(res.body, createWriteStream(storagePath))
+            clearTimeout(timeout)
+        } catch(error) {
+            clearTimeout(timeout)
+            throw error
         }
-        clearTimeout(timeout)
-        await streamPipeline(res.body, createWriteStream(storagePath))
     })
 }

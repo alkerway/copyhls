@@ -2,7 +2,7 @@ import { Frag } from "../types/frag";
 import { mergeMap, defer, Observable, retryWhen, timer, throwError, catchError, of, map } from "rxjs";
 import { RemoteToFile } from "../utils/remoteToFile";
 
-const FRAG_TIMEOUT = 20
+const FRAG_TIMEOUT = 15
 
 class DownloadFrag {
     private maxRetry = 3
@@ -21,11 +21,11 @@ class DownloadFrag {
                 retryWhen(errors => {
                     return errors.pipe(
                         mergeMap((error, attemptNo) => {
-                            console.log(`Frag download error, ${error}`)
+                            console.log(`Frag download error, ${error}, retrying in 3 sec`)
                             if (attemptNo + 1 > this.maxRetry) {
                                 return throwError(() => error)
                             }
-                            return timer(1000)
+                            return timer(3000)
                         })
                     )
                 }),
