@@ -98,6 +98,7 @@ class LevelParse {
                     tagLines: curTagLines, 
                     downloaded: false,
                     idx: fragIdx,
+                    originalMediaSequence: curFragSequence + mediaSequence,
                     duration: curFragDuration
                 }
                 frags.push(newFrag)

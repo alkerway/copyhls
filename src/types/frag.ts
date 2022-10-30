@@ -6,6 +6,7 @@ export interface Frag {
     tagLines: string[]
     duration: number
     idx: number
+    originalMediaSequence: number
     downloaded: boolean
     key: ExtKey | null
 }

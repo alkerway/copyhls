@@ -11,7 +11,7 @@ export const levelUrl = url || `
 export const referer = ref || `
 
 `.trim()
-export const stopAfter = 60 * 60 * 0.5
+export const stopAfter = 60 * 60 * 7.5
 // export const stopAfter = diffInSeconds
 if (stopAfter <= 0) {
     console.log('Invalid stop time, cancelling')
@@ -22,6 +22,9 @@ export const storageBase = 'manifest'
 
 export const outputFormat = 'mp4'
 
-export const maxConcurrentDownloads = 10
+export const maxConcurrentDownloads = 15
 export const maxStallCount = 4
-export const maxNetworkError = 1
+export const maxNetworkError = 5
+
+// experimental, needs testing
+export const decryptAES128Frags = false

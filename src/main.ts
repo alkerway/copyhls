@@ -6,6 +6,7 @@ import FragFilter from './steps/fragFilter'
 import DownloadFrag from './steps/downloadFrag'
 import OrganizeFrags from './steps/organizeFrags'
 import WriteToManifest from './steps/writeToManifest'
+import Decrypter from './steps/decryptFrag'
 import Finished from './steps/onFinish'
 
 import { levelPollInterval, stopAfter, maxConcurrentDownloads } from "./utils/config"
@@ -26,6 +27,7 @@ interval(levelPollInterval * 1000)
         mergeMap(DownloadFrag.download, maxConcurrentDownloads),
         map(OrganizeFrags.addToOrderedQueue),
         mergeAll(),
+        mergeMap(Decrypter.decryptIfConfigSaysSo),
         concatMap(WriteToManifest.write)
     )
     .subscribe({complete: Finished.assembleVideo})
