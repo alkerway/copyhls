@@ -5,11 +5,21 @@ import { RemoteToFile } from "../utils/remoteToFile";
 
 
 class DownloadKey {
+    private pendingKeyPaths: string[] = []
+    private downloadedKeys: string[] = []
     public download = (frag: Frag) => {
-        if (frag.key && !existsSync(frag.key.storagePath)) {
+        if (frag.key &&
+            !this.pendingKeyPaths.includes(frag.key.storagePath) &&
+            !this.downloadedKeys.includes(frag.key.storagePath)) {
+
+            this.pendingKeyPaths.push(frag.key.storagePath)
             return RemoteToFile(frag.key.remoteUrl, frag.key.storagePath)
                 .pipe(
-                    tap(() => console.log(`Downloaded Key for frag ${frag.idx}`)),
+                    tap(() => {
+                        console.log(`Downloaded Key for frag ${frag.idx}`)
+                        this.downloadedKeys.push(frag.key?.storagePath || '')
+                        this.pendingKeyPaths = this.pendingKeyPaths.filter(keyPath => keyPath !== frag.key?.storagePath)
+                    }),
                     map(() => frag),
                     catchError((error: Error) => {
                         console.log(`Could not download key, ${error.message}`)

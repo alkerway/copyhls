@@ -1,15 +1,18 @@
 import fetch, { RequestInit } from "node-fetch";
 
 import Messages from "../utils/messages";
-import { referer, maxNetworkError, initialUrl } from "../utils/config";
+import { referer, maxNetworkError } from "../utils/config";
 import { catchError, defer, EMPTY, Observable } from "rxjs";
-import { Level } from "../types";
 
-class LevelRequest {
+class InitialManifest {
   private errorCount = 0;
 
-  public requestLevel = (): Observable<{ levelUrl: string; levelText: string }> => {
-    const remoteUrl = initialUrl
+  public getInitialManifest = (
+    initialUrl: string
+  ): Observable<{
+    manifestText: string;
+    remoteUrl: string;
+  }> => {
     const options: any = {
       headers: {
         referer: referer,
@@ -18,30 +21,30 @@ class LevelRequest {
       },
     };
     return defer(async () => {
-      const res = await fetch(remoteUrl, options);
+      const res = await fetch(initialUrl, options);
       if (!res.ok) {
         throw new Error(
           `Error retrieving level: ${res.status}, ${res.statusText}`
         );
       }
       this.errorCount = 0;
-      const levelText = await res.text();
+      const manifestText = await res.text();
       return {
-        levelUrl: remoteUrl,
-        levelText,
+        manifestText,
+        remoteUrl: initialUrl,
       };
-    }).pipe(catchError(this.onLevelError));
+    }).pipe(catchError(this.onRequestError));
   };
 
-  public onLevelError = (error: Error) => {
+  public onRequestError = (error: Error) => {
     this.errorCount++;
     console.log(error.message);
     if (this.errorCount > maxNetworkError) {
-      console.log(`Max level request error, cancelling ticker`);
+      console.log(`Max master request error, cancelling ticker`);
       Messages.cancelTicker();
     }
     return EMPTY;
   };
 }
 
-export default new LevelRequest();
+export default new InitialManifest();
