@@ -5,7 +5,7 @@ import { maxStallCount } from "../utils/config";
 import FragQueue from "../utils/fragQueue";
 
 class FragFilter {
-  private skipFirstBunch = true; // true
+  private skipFirstBunch = false; // true
   private levelTrackerCache: {
     [levelRemoteUrl: string]: { mostRecentIdx: number; stallCount: number };
   } = {};
