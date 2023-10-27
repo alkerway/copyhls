@@ -1,12 +1,12 @@
-import fetch, { RequestInit } from "node-fetch";
-
-import Messages from "../utils/messages";
-import { initialUrl, referer, maxNetworkError } from "../utils/config";
-import { catchError, defer, of, Observable, EMPTY } from "rxjs";
+import { initialUrl, storageBase } from "../utils/config";
 import { Tags, getRemoteUrl, splitAttributes } from "../utils/manifest-utils";
 import { Level } from "../types";
+import { writeFile } from "fs-extra";
 
 class PrepareManifest {
+  private masterText = "";
+  private keepLevels: Level[] = [];
+
   public parseManifest = ({
     manifestText,
     remoteUrl,
@@ -19,6 +19,7 @@ class PrepareManifest {
     }
 
     const levels: Level[] = [];
+    let videoLevelIndex = 0;
 
     if (
       manifestText.indexOf(Tags.Inf) > 0 ||
@@ -29,6 +30,9 @@ class PrepareManifest {
         {
           type: "video",
           remoteUrl,
+          playlistLocalPath: "level.m3u8",
+          localFragmentFolderPath: "frags",
+          attributes: {},
         },
       ];
     }
@@ -65,7 +69,10 @@ class PrepareManifest {
             originalTagLine: line,
             type: "video",
             attributes: videoAttributes,
+            playlistLocalPath: "",
+            localFragmentFolderPath: "",
           });
+          videoLevelIndex++;
         } else if (line.startsWith(Tags.Media)) {
           const mediaAttributes = splitAttributes(
             line.slice(Tags.Media.length + 1)
@@ -83,10 +90,13 @@ class PrepareManifest {
           levels.push({
             remoteUrl: getRemoteUrl(mediaAttributes["URI"], initialUrl),
             originalTagLine: line,
+            originalTagUri: mediaAttributes["URI"],
             type: mediaAttributes["TYPE"].toLowerCase() as
               | "audio"
               | "subtitles",
             attributes: mediaAttributes,
+            playlistLocalPath: "",
+            localFragmentFolderPath: "",
           });
         }
       } else {
@@ -95,47 +105,126 @@ class PrepareManifest {
       }
     });
 
+    this.masterText = manifestText;
+
     return levels;
   };
 
-  selectLevels = (allLevels: Level[]): Level[] => {
-    const selectMode = "oneOfEach";
+  prepareLevels = (allLevels: Level[]): Level[] => {
+    // select one of each
 
     const firstVideoLevel = allLevels.find((l) => l.type === "video");
-    if (!firstVideoLevel) return allLevels;
+    // if (!firstVideoLevel) {
+    const editedLevels = allLevels.map((level, idx) => {
+      return {
+        ...level,
+        localFragmentFolderPath: `${storageBase}/${level.type}_${idx}`,
+        playlistLocalPath: `${storageBase}/playlist_${level.type}_${idx}.m3u8`,
+      };
+    });
+    this.keepLevels = editedLevels;
+    return editedLevels;
+    // }
 
-    let audioLevel;
-    const audioGroup = firstVideoLevel?.attributes?.["AUDIO"];
-    if (audioGroup) {
-      const audioLevels = allLevels.filter(
-        (level) =>
-          level.type === "audio" &&
-          level.attributes?.["GROUP-ID"] === audioGroup
-      );
-      const bestAudioLevel = audioLevels.find((level) =>
-        level?.attributes?.["DEFAULT"]?.includes("YES")
-      );
-      audioLevel = bestAudioLevel || audioLevels[0];
-    }
-    let subtitlesLevel;
-    const subtitlesGroup = firstVideoLevel?.attributes?.["SUBTITLES"];
-    if (subtitlesGroup) {
-      const subtitlesLevels = allLevels.filter(
-        (level) =>
-          level.type === "subtitles" &&
-          level.attributes?.["GROUP-ID"] === subtitlesGroup
-      );
-      const bestLevel = subtitlesLevels.find((level) =>
-        level?.attributes?.["DEFAULT"]?.includes("YES")
-      );
-      subtitlesLevel = bestLevel || subtitlesLevels[0];
-    }
+    // let audioLevel;
+    // const audioGroup = firstVideoLevel?.attributes?.["AUDIO"];
+    // if (audioGroup) {
+    //   const audioLevels = allLevels.filter(
+    //     (level) =>
+    //       level.type === "audio" &&
+    //       level.attributes?.["GROUP-ID"] === audioGroup
+    //   );
+    //   const bestAudioLevel = audioLevels.find((level) =>
+    //     level?.attributes?.["DEFAULT"]?.includes("YES")
+    //   );
+    //   audioLevel = bestAudioLevel || audioLevels[0];
+    // }
+    // let subtitlesLevel;
+    // const subtitlesGroup = firstVideoLevel?.attributes?.["SUBTITLES"];
+    // if (subtitlesGroup) {
+    //   const subtitlesLevels = allLevels.filter(
+    //     (level) =>
+    //       level.type === "subtitles" &&
+    //       level.attributes?.["GROUP-ID"] === subtitlesGroup
+    //   );
+    //   const bestLevel = subtitlesLevels.find((level) =>
+    //     level?.attributes?.["DEFAULT"]?.includes("YES")
+    //   );
+    //   subtitlesLevel = bestLevel || subtitlesLevels[0];
+    // }
 
-    const levelsToSelect = [firstVideoLevel];
-    if (audioLevel) levelsToSelect.push(audioLevel);
-    if (subtitlesLevel) levelsToSelect.push(subtitlesLevel);
+    // const levelsToSelect = [firstVideoLevel];
+    // if (!audioLevel && !subtitlesLevel) {
+    //   firstVideoLevel.localFragmentFolderPath = `${storageBase}/frags`;
+    //   firstVideoLevel.playlistLocalPath = `${storageBase}/level.m3u8`;
+    // } else {
+    //   firstVideoLevel.localFragmentFolderPath = `${storageBase}/video_0`;
+    //   firstVideoLevel.playlistLocalPath = `${storageBase}/playlist_video_0.m3u8`;
+    // }
 
-    return levelsToSelect;
+    // if (audioLevel) {
+    //   audioLevel.localFragmentFolderPath = `${storageBase}/audio_${audioLevel.attributes["NAME"]}`;
+    //   audioLevel.playlistLocalPath = `${storageBase}/playlist_audio_${audioLevel.attributes["NAME"]}.m3u8`;
+    //   levelsToSelect.push(audioLevel);
+    // }
+    // if (subtitlesLevel) {
+    //   subtitlesLevel.localFragmentFolderPath = `${storageBase}/subtitles_${subtitlesLevel.attributes["NAME"]}`;
+    //   subtitlesLevel.playlistLocalPath = `${storageBase}/playlist_subtitles_${subtitlesLevel.attributes["NAME"]}.m3u8`;
+    //   levelsToSelect.push(subtitlesLevel);
+    // }
+    // this.keepLevels = levelsToSelect;
+    // return levelsToSelect;
+  };
+
+  generateEditedMaster = () => {
+    // :( use stored state in this class cause we can't think of a better way
+    // to write the master manifest after levels + frags complete
+
+    const manifestText = this.masterText;
+    const levelsToSelect = this.keepLevels;
+    const editedManifest = manifestText
+      .split("\n")
+      .reduce((manifestLines, line) => {
+        if (line.trim() && !line.startsWith("#")) {
+          // remove all urls. If we have a
+          return manifestLines;
+        }
+        const matchingLevel = levelsToSelect.find(
+          (level) => level.originalTagLine === line
+        );
+        if (matchingLevel && matchingLevel.originalTagUri) {
+          if (line.startsWith(Tags.Media)) {
+            manifestLines.push(
+              line.replace(
+                matchingLevel.originalTagUri,
+                matchingLevel.playlistLocalPath.slice(storageBase.length + 1)
+              )
+            );
+            return manifestLines;
+          }
+        }
+
+        if (matchingLevel && line.startsWith(Tags.StreamInf)) {
+          manifestLines.push(line);
+          manifestLines.push(
+            matchingLevel.playlistLocalPath.slice(storageBase.length + 1)
+          );
+          return manifestLines;
+        }
+
+        if (
+          (line.startsWith(Tags.Media) || line.startsWith(Tags.StreamInf)) &&
+          !matchingLevel
+        ) {
+          return manifestLines;
+        }
+
+        manifestLines.push(line);
+        return manifestLines;
+      }, [] as string[])
+      .join("\n");
+
+    return editedManifest;
   };
 }
 

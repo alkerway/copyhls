@@ -4,9 +4,8 @@ This is a rewrite of https://github.com/alkerway/copylivemanifest, with the goal
 
 #### Live
 
-DVRs a given level manifest by polling and downloading fragments for a given amount of time, yielding an updating 
-[event-type playlist](https://developer.apple.com/documentation/http_live_streaming/example_playlists_for_http_live_streaming/event_playlist_construction),
-then stops and runs FFmpeg to create one single video.
+DVRs a given level manifest by polling and downloading fragments for a given amount of time, constructing an updating 
+[event-type playlist](https://developer.apple.com/documentation/http_live_streaming/example_playlists_for_http_live_streaming/event_playlist_construction).
 
 #### Vod
 
@@ -15,7 +14,7 @@ but still keeps the order and updates so that one can watch the video as a live 
 
 ### Usage
 
-* Have node and ffmpeg installed
+* Have node installed
 * Create an empty manifest directory in the project root
 * Specify the level url and download time in src/utils/config.ts
 * run npm start

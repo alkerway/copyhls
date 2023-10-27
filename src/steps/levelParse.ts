@@ -1,20 +1,36 @@
-import { Frag, ExtKey } from "../types";
+import { Frag, ExtKey, Level, InitSegment } from "../types";
 import { storageBase } from "../utils/config";
-import { getRemoteUrl } from "../utils/manifest-utils";
+import { Tags, getRemoteUrl, splitAttributes } from "../utils/manifest-utils";
+import { extname } from "path";
 
 class LevelParse {
-  private firstMediaSequence: null | number = null;
-  private keyMap: {
-    [uri: string]: number;
+  private levelCache: {
+    [levelUrl: string]: {
+      firstMediaSequence: null | number;
+      keyMap: {
+        [uri: string]: number;
+      };
+      keyIdx: number;
+      initSegmentMap: {
+        [uri: string]: number;
+      };
+      initSegmentIdx: number;
+    };
   } = {};
-  private keyIdx = 0;
   private instanceId = "";
+  private loggedEndlist = false
 
   constructor() {
     this.instanceId = this.randId(3);
   }
 
-  public getFragsFromManifest = ({levelText, levelUrl}: { levelText: string, levelUrl: string } ): [Frag[], boolean] => {
+  public getFragsFromManifest = ({
+    levelText,
+    level,
+  }: {
+    levelText: string;
+    level: Level;
+  }): { frags: Frag[]; hasEndlist: boolean } => {
     const frags: Frag[] = [];
     const lines = levelText.split("\n");
     let mediaSequence = 0;
@@ -22,7 +38,20 @@ class LevelParse {
     let curFragDuration = 0;
     let curFragSequence = 0;
     let curExtKey: ExtKey | null = null;
+    let curInitSegment: InitSegment | null = null;
     let hasEndlist = false;
+    const levelUrl = level.remoteUrl;
+
+    // set up cache
+    if (!this.levelCache[levelUrl]) {
+      this.levelCache[levelUrl] = {
+        firstMediaSequence: null,
+        keyMap: {},
+        keyIdx: 0,
+        initSegmentMap: {},
+        initSegmentIdx: 0,
+      };
+    }
 
     for (const line of lines) {
       if (line.startsWith("##") || !line.trim()) {
@@ -38,17 +67,17 @@ class LevelParse {
             console.log("!! no frag duration extracted from extinf tag ", line);
           }
         }
-        if (line.indexOf("EXT-X-MEDIA-SEQUENCE") > -1) {
+        if (line.indexOf(Tags.MediaSequence) > -1) {
           const mediaSequenceRegex = /EXT-X-MEDIA-SEQUENCE\:(.+)(,|$)/;
           const match = mediaSequenceRegex.exec(line);
           if (match && match[1]) {
             mediaSequence = Number(match[1]);
-            if (this.firstMediaSequence === null) {
-              this.firstMediaSequence = mediaSequence;
+            if (this.levelCache[levelUrl].firstMediaSequence === null) {
+              this.levelCache[levelUrl].firstMediaSequence = mediaSequence;
             }
           }
         }
-        if (line.indexOf("#EXT-X-KEY") > -1) {
+        if (line.indexOf(Tags.Key) > -1) {
           const commaRegex = /,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/;
           const dataStr = line.split(/:(.+)/)[1];
           const dataParts = dataStr.split(commaRegex);
@@ -69,15 +98,17 @@ class LevelParse {
             if (keyData.uri.toLowerCase().startsWith("data")) {
               curExtKey = null;
             } else {
-              const remoteKeyUrl = getRemoteUrl(keyData.uri, levelUrl);
+              const remoteKeyUrl = getRemoteUrl(keyData.uri, level.remoteUrl);
               keyData["remoteUrl"] = remoteKeyUrl;
-              let keyStorageNumber = this.keyIdx;
-              if (this.keyMap[remoteKeyUrl]) {
-                keyStorageNumber = this.keyMap[remoteKeyUrl];
+              let keyStorageNumber = this.levelCache[levelUrl].keyIdx;
+              if (this.levelCache[levelUrl].keyMap[remoteKeyUrl]) {
+                keyStorageNumber =
+                  this.levelCache[levelUrl].keyMap[remoteKeyUrl];
               } else {
-                this.keyIdx++;
-                this.keyMap[remoteKeyUrl] = this.keyIdx;
-                keyStorageNumber = this.keyIdx;
+                this.levelCache[levelUrl].keyIdx++;
+                this.levelCache[levelUrl].keyMap[remoteKeyUrl] =
+                  this.levelCache[levelUrl].keyIdx;
+                keyStorageNumber = this.levelCache[levelUrl].keyIdx;
               }
               keyData[
                 "storagePath"
@@ -90,23 +121,74 @@ class LevelParse {
             }
           }
         }
-        if (line.indexOf("#EXT-X-ENDLIST") > -1) {
+        if (line.startsWith(Tags.Map)) {
+          const mapAttributes = splitAttributes(
+            line.slice(Tags.Map.length + 1)
+          ).reduce((attributeList, attribute) => {
+            const [key, val] = attribute.split(/=(.*)/);
+            attributeList[key] = val.startsWith('"') ? val.slice(1, -1) : val;
+            return attributeList;
+          }, {} as Record<string, string>);
+          const mapUri = mapAttributes["URI"];
+          if (mapUri) {
+            const initSegmentRemoteUrl = getRemoteUrl(mapUri, level.remoteUrl);
+            const extName = extname(initSegmentRemoteUrl.split("?")[0]);
+
+            let initSegmentCount = this.levelCache[levelUrl].initSegmentIdx;
+            if (
+              this.levelCache[levelUrl].initSegmentMap[initSegmentRemoteUrl]
+            ) {
+              initSegmentCount =
+                this.levelCache[levelUrl].initSegmentMap[initSegmentRemoteUrl];
+            } else {
+              this.levelCache[levelUrl].initSegmentIdx++;
+              this.levelCache[levelUrl].initSegmentMap[initSegmentRemoteUrl] =
+                this.levelCache[levelUrl].initSegmentIdx;
+              initSegmentCount = this.levelCache[levelUrl].initSegmentIdx;
+            }
+
+            const storagePath = `${level.localFragmentFolderPath}/${this.instanceId}_init_${initSegmentCount}${extName}`;
+            curInitSegment = {
+              remoteUrl: initSegmentRemoteUrl,
+              storagePath,
+              localManifestLine: line.replace(
+                mapUri,
+                storagePath.slice(storageBase.length + 1)
+              ),
+            };
+          }
+        }
+        if (line.indexOf(Tags.End) > -1) {
           hasEndlist = true;
+          const lastFrag = frags[frags.length - 1];
+          if (lastFrag) {
+            lastFrag.lastFragBeforeEndlist = true;
+            if (!this.loggedEndlist) {
+              console.log("ENDLIST frag encountered");
+              this.loggedEndlist = true
+            }
+          }
         }
       } else {
-        let remoteUrl = getRemoteUrl(line, levelUrl);
+        let remoteUrl = getRemoteUrl(line, level.remoteUrl);
+        const extName = extname(remoteUrl.split("?")[0]);
         const fragIdx =
-          curFragSequence + mediaSequence - (this.firstMediaSequence || 0);
-        let storagePath = `${this.instanceId}_frag_${fragIdx}.ts`;
+          curFragSequence +
+          mediaSequence -
+          (this.levelCache[levelUrl].firstMediaSequence || 0);
+        let storagePath = `${this.instanceId}_frag_${fragIdx}${extName}`;
         const newFrag: Frag = {
           key: curExtKey,
-          storagePath: `${storageBase}/frags/${storagePath}`,
+          initSegment: curInitSegment,
+          storagePath: `${level.localFragmentFolderPath}/${storagePath}`,
           remoteUrl,
           tagLines: curTagLines,
           downloaded: false,
           idx: fragIdx,
           originalMediaSequence: curFragSequence + mediaSequence,
           duration: curFragDuration,
+          level,
+          lastFragBeforeEndlist: false,
         };
         frags.push(newFrag);
         curTagLines = [];
@@ -114,7 +196,10 @@ class LevelParse {
         curFragSequence++;
       }
     }
-    return [frags, hasEndlist];
+    return {
+      frags,
+      hasEndlist,
+    };
   };
 
   private randId = (length: number): string => {

@@ -1,15 +1,17 @@
-import fetch, { RequestInit } from "node-fetch";
+import fetch from "node-fetch";
 
 import Messages from "../utils/messages";
-import { referer, maxNetworkError, initialUrl } from "../utils/config";
+import { referer, maxNetworkError } from "../utils/config";
 import { catchError, defer, EMPTY, Observable } from "rxjs";
 import { Level } from "../types";
 
 class LevelRequest {
   private errorCount = 0;
 
-  public requestLevel = (): Observable<{ levelUrl: string; levelText: string }> => {
-    const remoteUrl = initialUrl
+  public requestLevel = (
+    level: Level
+  ): Observable<{ level: Level; levelText: string }> => {
+    const remoteUrl = level.remoteUrl;
     const options: any = {
       headers: {
         referer: referer,
@@ -27,7 +29,7 @@ class LevelRequest {
       this.errorCount = 0;
       const levelText = await res.text();
       return {
-        levelUrl: remoteUrl,
+        level,
         levelText,
       };
     }).pipe(catchError(this.onLevelError));

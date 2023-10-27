@@ -1,4 +1,4 @@
-const [_1, _2, url, ref] = process.argv;
+const [_1, _2, urlArgument, refererArgument] = process.argv;
 const nowDate = new Date();
 let stopDate = new Date(
   nowDate.getFullYear(),
@@ -12,12 +12,12 @@ let stopDate = new Date(
 const diffInSeconds = (stopDate.getTime() - nowDate.getTime()) / 1000;
 
 export const initialUrl =
-  url ||
+  urlArgument ||
   `
 
 `.trim();
 export const referer =
-  ref ||
+  refererArgument ||
   `
 
 `.trim();
@@ -27,7 +27,7 @@ if (stopAfter <= 0) {
   console.log("Invalid stop time, cancelling");
   process.exit();
 }
-export const levelPollInterval = 6;
+export const levelPollIntervalSeconds = 6;
 export const storageBase = "manifest";
 
 export const outputFormat = "mp4";

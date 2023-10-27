@@ -29,6 +29,7 @@ class InitialManifest {
       }
       this.errorCount = 0;
       const manifestText = await res.text();
+      // console.log(manifestText);
       return {
         manifestText,
         remoteUrl: initialUrl,

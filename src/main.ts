@@ -8,6 +8,9 @@ import {
   takeUntil,
   timer,
   race,
+  combineLatestWith,
+  forkJoin,
+  tap,
 } from "rxjs";
 
 import LevelRequest from "./steps/levelRequest";
@@ -20,7 +23,7 @@ import Decrypter from "./steps/decryptFrag";
 import Finished from "./steps/onFinish";
 
 import {
-  levelPollInterval,
+  levelPollIntervalSeconds,
   stopAfter,
   maxConcurrentDownloads,
   initialUrl,
@@ -29,26 +32,35 @@ import Messages from "./utils/messages";
 import DownloadKey from "./steps/downloadKey";
 import InitialManifest from "./steps/initialManifest";
 import PrepareManifest from "./steps/prepareManifest";
+import { ZipArrays } from "./utils/zip-arrays";
+import DownloadInitSegment from "./steps/downloadInitSegment";
 
 console.log("program start");
 
-// InitialManifest.getInitialManifest(initialUrl)
-//   .pipe(map(PrepareManifest.parseManifest), map(PrepareManifest.selectLevels), mergeAll())
-//   .subscribe((obj) => console.log(obj.remoteUrl));
+const levelPollInterval = interval(levelPollIntervalSeconds * 1000).pipe(
+  startWith(0),
+  takeUntil(race(timer(stopAfter * 1000), Messages.tickerCanceled))
+);
 
-interval(levelPollInterval * 1000)
-    .pipe(
-        startWith(0),
-        takeUntil(race(timer(stopAfter * 1000), Messages.tickerCanceled)),
-        mergeMap(LevelRequest.requestLevel),
-        map(LevelParse.getFragsFromManifest),
-        map(FragFilter.findNewFrags),
-        mergeAll(),
-        mergeMap(DownloadFrag.download, maxConcurrentDownloads),
-        mergeMap(DownloadKey.download, maxConcurrentDownloads),
-        map(OrganizeFrags.addToOrderedQueue),
-        mergeAll(),
-        mergeMap(Decrypter.decryptIfConfigSaysSo),
-        concatMap(WriteToManifest.write)
-    )
-    .subscribe({complete: Finished.assembleVideo})
+InitialManifest.getInitialManifest(initialUrl)
+  .pipe(
+    map(PrepareManifest.parseManifest),
+    map(PrepareManifest.prepareLevels),
+
+    combineLatestWith(levelPollInterval),
+    map(([prepareLevelsOutput]) => prepareLevelsOutput),
+
+    mergeMap((levels) => forkJoin(levels.map(LevelRequest.requestLevel))),
+    map((levels) => levels.map(LevelParse.getFragsFromManifest)),
+    map((levels) => levels.map(FragFilter.findNewFrags)),
+    map(ZipArrays),
+    mergeAll(),
+    mergeMap(DownloadFrag.download, maxConcurrentDownloads),
+    mergeMap(DownloadKey.download, maxConcurrentDownloads),
+    mergeMap(DownloadInitSegment.download, maxConcurrentDownloads),
+    map(OrganizeFrags.addToOrderedQueue),
+    mergeAll(),
+    mergeMap(Decrypter.decryptIfConfigSaysSo),
+    concatMap(WriteToManifest.write)
+  )
+  .subscribe();

@@ -1,24 +1,31 @@
-import { Frag } from "../types"
-
+import { Frag } from "../types";
 
 class FragQueue {
-    private frags: Frag[] = []
+  private fragQueueMap: {
+    [levelUrl: string]: Frag[];
+  } = {};
 
-    public addFragsFromManifest = (manifestFrags: Frag[]) => {
-        this.frags = this.frags.concat(manifestFrags)
+  public addFragsFromManifest = (levelUrl: string, manifestFrags: Frag[]) => {
+    if (!this.fragQueueMap[levelUrl]) {
+      this.fragQueueMap[levelUrl] = [];
     }
+    this.fragQueueMap[levelUrl] =
+      this.fragQueueMap[levelUrl].concat(manifestFrags);
+  };
 
-    public peekNextFrag = (): Frag | null => {
-        if (!this.frags.length) {
-            return null
-        }
-        return this.frags[0]
+  public peekNextFrag = (levelUrl: string): Frag | null => {
+    if (!this.fragQueueMap[levelUrl]?.length) {
+      return null;
     }
+    return this.fragQueueMap[levelUrl][0];
+  };
 
-    public shift = (): Frag | null => {
-        const outFrag = this.frags.shift()
-        return outFrag || null
+  public shift = (levelUrl: string): Frag | null => {
+    if (!this.fragQueueMap[levelUrl]?.length) {
+      return null;
     }
+    return this.fragQueueMap[levelUrl].shift() || null;
+  };
 }
 
-export default new FragQueue
+export default new FragQueue();
